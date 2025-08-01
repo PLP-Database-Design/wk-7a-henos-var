@@ -1,66 +1,104 @@
-Question 1: Achieving 1NF (First Normal Form) 
--- Create normalized tables 
-CREATE TABLE Orders_1NF (
+-- -----------------------------------------------------
+-- SQL Script: normalization_example_ethiopia.sql
+-- Description: Demonstrates 1NF and 2NF using Ethiopian context
+-- Author: Zemcheal Algabrhan Gebretsadik
+-- -----------------------------------------------------
+
+-- 🔄 Drop and recreate the database
+DROP DATABASE IF EXISTS normalization_db;
+CREATE DATABASE normalization_db;
+USE normalization_db;
+
+-- -----------------------------------------------------
+-- 🔹 PART 1: Original Table (violates 1NF)
+-- -----------------------------------------------------
+-- Products column contains multiple values, violating atomicity
+
+CREATE TABLE ProductDetail_Violates1NF (
     OrderID INT,
     CustomerName VARCHAR(100),
-    PRIMARY KEY (OrderID)
+    Products VARCHAR(255)
 );
 
-CREATE TABLE OrderProducts_1NF (
+-- Insert sample data with Ethiopian names
+INSERT INTO ProductDetail_Violates1NF VALUES
+(201, 'Abebe Bekele', 'Laptop, Mouse'),
+(202, 'Muluwork Tadesse', 'Tablet, Keyboard, Mouse'),
+(203, 'Selamawit Alemu', 'Phone');
+
+-- -----------------------------------------------------
+-- 🔹 PART 2: Table in 1NF (atomic product values)
+-- -----------------------------------------------------
+-- Each row now contains only one product per order
+
+CREATE TABLE ProductDetail_1NF (
     OrderID INT,
+    CustomerName VARCHAR(100),
+    Product VARCHAR(100)
+);
+
+-- Insert transformed 1NF data
+INSERT INTO ProductDetail_1NF VALUES
+(201, 'Abebe Bekele', 'Laptop'),
+(201, 'Abebe Bekele', 'Mouse'),
+(202, 'Muluwork Tadesse', 'Tablet'),
+(202, 'Muluwork Tadesse', 'Keyboard'),
+(202, 'Muluwork Tadesse', 'Mouse'),
+(203, 'Selamawit Alemu', 'Phone');
+
+-- -----------------------------------------------------
+-- 🔹 PART 3: Original 1NF table that violates 2NF
+-- -----------------------------------------------------
+-- CustomerName depends only on OrderID → partial dependency
+
+CREATE TABLE OrderDetails_Violates2NF (
+    OrderID INT,
+    CustomerName VARCHAR(100),
     Product VARCHAR(100),
-    PRIMARY KEY (OrderID, Product),
-    FOREIGN KEY (OrderID) REFERENCES Orders_1NF(OrderID)
+    Quantity INT
 );
 
--- Insert data 
-INSERT INTO Orders_1NF VALUES (101, 'Abebe Kebede');
-INSERT INTO OrderProducts_1NF VALUES (101, 'Laptop');
-INSERT INTO OrderProducts_1NF VALUES (101, 'Mouse');
+-- Insert data showing the violation
+INSERT INTO OrderDetails_Violates2NF VALUES
+(201, 'Abebe Bekele', 'Laptop', 2),
+(201, 'Abebe Bekele', 'Mouse', 1),
+(202, 'Muluwork Tadesse', 'Tablet', 3),
+(202, 'Muluwork Tadesse', 'Keyboard', 1),
+(202, 'Muluwork Tadesse', 'Mouse', 2),
+(203, 'Selamawit Alemu', 'Phone', 1);
 
-INSERT INTO Orders_1NF VALUES (102, 'Mekdes Hailu');
-INSERT INTO OrderProducts_1NF VALUES (102, 'Tablet');
-INSERT INTO OrderProducts_1NF VALUES (102, 'Keyboard');
-INSERT INTO OrderProducts_1NF VALUES (102, 'Mouse');
+-- -----------------------------------------------------
+-- 🔹 PART 4: Normalize to 2NF
+-- -----------------------------------------------------
+-- Split into two separate tables:
+-- - Orders: OrderID → CustomerName
+-- - OrderItems: (OrderID, Product) → Quantity
 
-INSERT INTO Orders_1NF VALUES (103, 'Selamawit Tesfaye');
-INSERT INTO OrderProducts_1NF VALUES (103, 'Phone');
-Question 2: Achieving 2NF (Second Normal Form) 
--- Create normalized tables 
-CREATE TABLE Customers_2NF (
-    CustomerID INT AUTO_INCREMENT,
-    CustomerName VARCHAR(100),
-    PRIMARY KEY (CustomerID)
+-- Table: Orders
+CREATE TABLE Orders (
+    OrderID INT PRIMARY KEY,
+    CustomerName VARCHAR(100)
 );
 
-CREATE TABLE Orders_2NF (
-    OrderID INT,
-    CustomerID INT,
-    PRIMARY KEY (OrderID),
-    FOREIGN KEY (CustomerID) REFERENCES Customers_2NF(CustomerID)
-);
-
-CREATE TABLE OrderItems_2NF (
+-- Table: OrderItems
+CREATE TABLE OrderItems (
     OrderID INT,
     Product VARCHAR(100),
     Quantity INT,
-    PRIMARY KEY (OrderID, Product),
-    FOREIGN KEY (OrderID) REFERENCES Orders_2NF(OrderID)
+    FOREIGN KEY (OrderID) REFERENCES Orders(OrderID)
 );
 
--- Insert 
-INSERT INTO Customers_2NF (CustomerName) VALUES 
-('Abebe Kebede'), ('Mekdes Hailu'), ('Selamawit Tesfaye');
+-- Insert into Orders table
+INSERT INTO Orders VALUES
+(201, 'Abebe Bekele'),
+(202, 'Muluwork Tadesse'),
+(203, 'Selamawit Alemu');
 
--- Create orders
-INSERT INTO Orders_2NF VALUES (101, 1);
-INSERT INTO Orders_2NF VALUES (102, 2);
-INSERT INTO Orders_2NF VALUES (103, 3);
-
--- Add order items
-INSERT INTO OrderItems_2NF VALUES (101, 'Laptop', 2);
-INSERT INTO OrderItems_2NF VALUES (101, 'Mouse', 1);
-INSERT INTO OrderItems_2NF VALUES (102, 'Tablet', 3);
-INSERT INTO OrderItems_2NF VALUES (102, 'Keyboard', 1);
-INSERT INTO OrderItems_2NF VALUES (102, 'Mouse', 2);
-INSERT INTO OrderItems_2NF VALUES (103, 'Phone', 1);
+-- Insert into OrderItems table
+INSERT INTO OrderItems VALUES
+(201, 'Laptop', 2),
+(201, 'Mouse', 1),
+(202, 'Tablet', 3),
+(202, 'Keyboard', 1),
+(202, 'Mouse', 2),
+(203, 'Phone', 1);
